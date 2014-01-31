@@ -1,0 +1,7 @@
+base   plainmail
+author i-net software
+email  tools@inetsoftware.de
+date   2010-01-20
+name   Plain Mail Renderer
+desc   Renders the document for plain text mail usage
+url    
