@@ -70,8 +70,9 @@ class renderer_plugin_plainmail extends Doku_Renderer {
 		$separator = '';
 
 		$metaheader = array();
-		$metaheader['Content-Type'] = 'plain/text; charset=iso-8859-1';
+		$metaheader['Content-Type'] = 'plain/text; charset=utf-8';
 		$metaheader['Content-Disposition'] = 'attachment; filename="' . noNS($ID) . '.txt"';
+
 		$meta = array();
 		$meta['format']['plainmail'] = $metaheader;
 		p_set_metadata($ID,$meta);
@@ -83,6 +84,7 @@ class renderer_plugin_plainmail extends Doku_Renderer {
 		}
 
 		$this->doc .= $this->_xmlEntities($name) . DOKU_LF;
+
 	}
 
 	function document_end() {
@@ -115,16 +117,16 @@ class renderer_plugin_plainmail extends Doku_Renderer {
 		}
 
 		// make sure there are no empty paragraphs
-		$this->doc = preg_replace('#'.DOKU_LF.'\s*'.DOKU_LF.'\s*'.DOKU_LF.'#',DOKU_LF.DOKU_LF,$this->doc);
+		$this->doc = preg_replace('#'.DOKU_LF.'\s+'.DOKU_LF.'\s+'.DOKU_LF.'#',DOKU_LF.DOKU_LF,$this->doc);
 		$doc = explode(DOKU_LF, $this->doc);
 		$this->doc = '';
 		foreach( $doc as $line ) {
 		    if ( $this->getConf('line_length') > 0 ) {
-    			while ( utf8_strlen($line) > $this->getConf('line_length') ) {
-    				$index = strrpos($line, ' ', -utf8_strlen($line) + $this->getConf('line_length'));
-    				$this->doc .= utf8_substr($line, 0, $index) . DOKU_LF;
-    				$line = utf8_substr($line, $index+1);
-    			}
+	    			while ( utf8_strlen($line) > $this->getConf('line_length') ) {
+	    				$index = strrpos($line, ' ', -utf8_strlen($line) + $this->getConf('line_length'));
+	    				$this->doc .= utf8_substr($line, 0, $index) . DOKU_LF;
+	    				$line = trim(utf8_substr($line, $index));
+	    			}
 		    }
 			
 			$this->doc .= $line . DOKU_LF;
@@ -132,7 +134,7 @@ class renderer_plugin_plainmail extends Doku_Renderer {
 	}
 
 	function header($text, $level, $pos) {
-			
+
 	    $headerLineLength = $this->getConf('line_length');
 	    if ( $headerLineLength == 0 ) $hrLineLength = $this->defaultLineLength;
 	    
@@ -150,11 +152,11 @@ class renderer_plugin_plainmail extends Doku_Renderer {
 		if ( $LEFT < 0 ) $LEFT = 0;
 		if ( $RIGHT < 0 ) $RIGHT = 0;
 		
-		$this->doc .= DOKU_LF.DOKU_LF.str_repeat($char, $LEFT).($LEFT>0?' ':'').$this->_xmlEntities($text).($RIGHT>0?' ':'').str_repeat($char, $RIGHT).DOKU_LF;
+		$this->doc .= DOKU_LF.DOKU_LF.str_repeat($char, $LEFT).($LEFT>0?' ':'').$this->_xmlEntities($text).($RIGHT>0?' ':'').str_repeat($char, $RIGHT).DOKU_LF.DOKU_LF;
 	}
 
 	function section_close() {
-		$this->doc .= DOKU_LF;
+		$this->doc .= DOKU_LF . DOKU_LF;
 	}
 
 	function cdata($text) {
@@ -162,7 +164,7 @@ class renderer_plugin_plainmail extends Doku_Renderer {
 	}
 
 	function p_close() {
-		$this->doc .= DOKU_LF;
+		$this->doc .= DOKU_LF . DOKU_LF;
 	}
 
 	function linebreak() {
@@ -272,13 +274,38 @@ class renderer_plugin_plainmail extends Doku_Renderer {
 	function unformatted($text) {
 		$this->doc .= $this->_xmlEntities($text);
 	}
-
-	function php($text) {
-	}
-
-	function phpblock($text) {
-		$this->doc .= $this->_xmlEntities($text);
-	}
+    
+    /**
+    * Execute PHP code if allowed
+    *
+    * @param  string $text      PHP code that is either executed or printed
+    * @param  string $wrapper   html element to wrap result if $conf['phpok'] is okff
+    *
+    * @author Andreas Gohr <andi@splitbrain.org>
+    */
+    public function php($text, $wrapper = 'code') {
+        global $conf;
+        if($conf['phpok']) {
+            ob_start();
+            eval($text);
+            $this->doc .= ob_get_contents();
+            ob_end_clean();
+        } else {
+            $this->doc .= p_xhtml_cached_geshi($text, 'php', $wrapper);
+        }
+    }
+    
+    /**
+    * Output block level PHP code
+    *
+    * If $conf['phpok'] is true this should evaluate the given code and append the result
+    * to $doc
+    *
+    * @param string $text The PHP code
+    */
+    public function phpblock($text) {
+        $this->php($text, 'pre');
+    }
 
 	function html($text) {
 		$this->doc .= $this->_xmlEntities(utf8_strip_tags($text));
@@ -525,8 +552,8 @@ class renderer_plugin_plainmail extends Doku_Renderer {
 	}
 
 	function _xmlEntities($utf8_string) {
-	    
-	    return $this->UTF8ToHTML($utf8_string);
+	 	return $utf8_string;
+	    // return $this->UTF8ToHTML($utf8_string);
 	}
 	
 	function _formatLink($link){
