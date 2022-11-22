@@ -36,7 +36,7 @@ class renderer_plugin_plainmail extends Doku_Renderer {
 	}
 
 	//handle plugin rendering
-	function plugin($name,$data){
+	function plugin($name, $data, $state = '', $match = ''){
 		$plugin =& plugin_load('syntax',$name);
 		if($plugin != null){
 			if(!$plugin->render($this->getFormat(),$this,$data)) {
@@ -44,7 +44,7 @@ class renderer_plugin_plainmail extends Doku_Renderer {
 				// probably doesn't support text, so use utf8_stripped-down xhtml
 				$tmpData = $this->doc;
 				$this->doc = '';
-				if($plugin->render('xhtml',$this,$data) && ($this->doc != '')) {
+				if($plugin->render('xhtml',$this,$data) && $tmpData != '' ) {
 					$search = array('@<script[^>]*?>.*?</script>@si', // javascript
                   '@<style[^>]*?>.*?</style>@siU',                // style tags
                   '@<[\/\!]*?[^<>]*?>@si',                        // HTML tags
@@ -133,7 +133,7 @@ class renderer_plugin_plainmail extends Doku_Renderer {
 		}
 	}
 
-	function header($text, $level, $pos) {
+	function header($text, $level, $pos, $returnonly = false) {
 
 	    $headerLineLength = $this->getConf('line_length');
 	    if ( $headerLineLength == 0 ) $hrLineLength = $this->defaultLineLength;
@@ -259,7 +259,7 @@ class renderer_plugin_plainmail extends Doku_Renderer {
 		$this->doc .= DOKU_LF;
 	}
 
-    function listitem_open($level) {
+    function listitem_open($level, $node = false) {
 		$this->doc .= str_repeat(' ', $level);
     	
     	if ( $this->listStyle[count($this->listStyle)-1] == 'u' ) {
@@ -321,11 +321,11 @@ class renderer_plugin_plainmail extends Doku_Renderer {
 		$this->doc .=  "> " . $code . DOKU_LF . DOKU_LF;
 	}
 
-	function file($text) {
+	function file($text, $lang = null, $file = null) {
 		$this->preformatted($text);
 	}
 
-	function code($text, $language = NULL) {
+	function code($text, $lang = null, $file = null) {
 		$this->preformatted($text);
 	}
 
@@ -429,7 +429,7 @@ class renderer_plugin_plainmail extends Doku_Renderer {
 		$this->doc .= ' ' . $title . ' ';
 	}
 
-	function table_close(){
+	function table_close($pos = null){
 
 		// Do all the Magic
 		$lengths = array();
@@ -581,7 +581,7 @@ class renderer_plugin_plainmail extends Doku_Renderer {
 
             for ($j = 0; $j < $split; $j += 1)
             {
-                $key .= $text{$i};
+                $key .= $text[$i];
 
                 $i += 1;
             }
@@ -623,7 +623,7 @@ class renderer_plugin_plainmail extends Doku_Renderer {
     {
         $ret = 0;
 
-        foreach(($this->strSplit(strrev(chr((ord($str{0}) % 252 % 248 % 240 % 224 % 192) + 128).substr($str, 1)))) as $k => $v)
+        foreach(($this->strSplit(strrev(chr((ord($str[0]) % 252 % 248 % 240 % 224 % 192) + 128).substr($str, 1)))) as $k => $v)
             $ret += (ord($v) % 128) * pow(64, $k);
         return "&#".$ret.";";
     }
