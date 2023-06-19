@@ -12,8 +12,7 @@ if ( !defined('DOKU_LF') ) {
 	define ('DOKU_LF',"\n");
 }
 
-require_once DOKU_INC . 'inc/parser/renderer.php';
-require_once DOKU_INC . 'inc/html.php';
+use dokuwiki\Utf8\PhpString;
 
 class renderer_plugin_plainmail extends Doku_Renderer {
 
@@ -41,7 +40,7 @@ class renderer_plugin_plainmail extends Doku_Renderer {
 		if($plugin != null){
 			if(!$plugin->render($this->getFormat(),$this,$data)) {
 
-				// probably doesn't support text, so use utf8_stripped-down xhtml
+				// probably doesn't support text, so use PhpString::stripped-down xhtml
 				$tmpData = $this->doc;
 				$this->doc = '';
 				if($plugin->render('xhtml',$this,$data) && $tmpData != '' ) {
@@ -51,7 +50,7 @@ class renderer_plugin_plainmail extends Doku_Renderer {
                   '@<![\s\S]*?--[ \t\n\r]*>@',                    // multi-line comments
                   '@\s+@'                                         // extra whitespace
 					);
-					$this->doc = $tmpData . utf8_trim(html_entity_decode(preg_replace($search,' ',$this->doc),ENT_QUOTES));
+					$this->doc = $tmpData . PhpString::trim(html_entity_decode(preg_replace($search,' ',$this->doc),ENT_QUOTES));
 				}
 				else
 				$this->doc = $tmpData;
@@ -96,7 +95,7 @@ class renderer_plugin_plainmail extends Doku_Renderer {
 				$id++;   // the number of the current footnote
 
 				// check its not a placeholder that indicates actual footnote text is elsewhere
-				if (utf8_substr($footnote, 0, 5) != "@@FNT") {
+				if (PhpString::substr($footnote, 0, 5) != "@@FNT") {
 					$this->doc .= $id.') ';
 					// get any other footnotes that use the same markup
 					$alt = array_keys($this->footnotes, "@@FNT$id");
@@ -122,10 +121,10 @@ class renderer_plugin_plainmail extends Doku_Renderer {
 		$this->doc = '';
 		foreach( $doc as $line ) {
 		    if ( $this->getConf('line_length') > 0 ) {
-	    			while ( utf8_strlen($line) > $this->getConf('line_length') ) {
-	    				$index = strrpos($line, ' ', -utf8_strlen($line) + $this->getConf('line_length'));
-	    				$this->doc .= utf8_substr($line, 0, $index) . DOKU_LF;
-	    				$line = trim(utf8_substr($line, $index));
+	    			while ( PhpString::strlen($line) > $this->getConf('line_length') ) {
+	    				$index = strrpos($line, ' ', -PhpString::strlen($line) + $this->getConf('line_length'));
+	    				$this->doc .= PhpString::substr($line, 0, $index) . DOKU_LF;
+	    				$line = PhpString::trim(PhpString::substr($line, $index));
 	    			}
 		    }
 			
@@ -143,10 +142,10 @@ class renderer_plugin_plainmail extends Doku_Renderer {
 			default: $char = ' ';
 		}
 			
-		$text = utf8_trim($text);
-		$LEFT = $RIGHT = floor(($headerLineLength- utf8_strlen($text) - 2) / 2);
-		if ( $LEFT + $RIGHT + utf8_strlen($text) < $headerLineLength) {
-			$RIGHT += $headerLineLength - $LEFT - $RIGHT - utf8_strlen($text) -2;
+		$text = PhpString::trim($text);
+		$LEFT = $RIGHT = floor(($headerLineLength- PhpString::strlen($text) - 2) / 2);
+		if ( $LEFT + $RIGHT + PhpString::strlen($text) < $headerLineLength) {
+			$RIGHT += $headerLineLength - $LEFT - $RIGHT - PhpString::strlen($text) -2;
 		}
 		
 		if ( $LEFT < 0 ) $LEFT = 0;
@@ -308,7 +307,7 @@ class renderer_plugin_plainmail extends Doku_Renderer {
     }
 
 	function html($text) {
-		$this->doc .= $this->_xmlEntities(utf8_strip_tags($text));
+		$this->doc .= $this->_xmlEntities(PhpString::strip_tags($text));
 	}
 
 	function htmlblock($text) {
@@ -316,7 +315,7 @@ class renderer_plugin_plainmail extends Doku_Renderer {
 	}
 
 	function preformatted($text) {
-		$code = $this->_xmlEntities(trim($text));
+		$code = $this->_xmlEntities(PhpString::trim($text));
 		$code = preg_replace("/\n/", "\n> ", $code);
 		$this->doc .=  "> " . $code . DOKU_LF . DOKU_LF;
 	}
@@ -442,16 +441,16 @@ class renderer_plugin_plainmail extends Doku_Renderer {
 				$text = $this->table[$i]['cells'][$ii]['text'];
 
 				switch( $this->table[$i]['cells'][$ii]['align'] ) {
-					case 'center'  :	$LEFT = $RIGHT = floor($this->_counter['rowlencount'][$ii] - utf8_strlen($text) / 2);
-										if ( $LEFT + $RIGHT + utf8_strlen($text) < $this->_counter['rowlencount'][$ii]) {
-											$RIGHT += $this->_counter['rowlencount'][$ii] - $LEFT + $RIGHT + utf8_strlen($text);
+					case 'center'  :	$LEFT = $RIGHT = floor($this->_counter['rowlencount'][$ii] - PhpString::strlen($text) / 2);
+										if ( $LEFT + $RIGHT + PhpString::strlen($text) < $this->_counter['rowlencount'][$ii]) {
+											$RIGHT += $this->_counter['rowlencount'][$ii] - $LEFT + $RIGHT + PhpString::strlen($text);
 										}
 										break;
 					case 'right'   :	$RIGHT = 1;
-										$LEFT = $this->_counter['rowlencount'][$ii] - utf8_strlen($text);
+										$LEFT = $this->_counter['rowlencount'][$ii] - PhpString::strlen($text);
 										break;
 					default        : 	$LEFT = 1;
-										$RIGHT = $this->_counter['rowlencount'][$ii] - utf8_strlen($text);
+										$RIGHT = $this->_counter['rowlencount'][$ii] - PhpString::strlen($text);
 				}
 				
 				if ( $LEFT < 0 ) $LEFT = 1;
@@ -470,7 +469,7 @@ class renderer_plugin_plainmail extends Doku_Renderer {
 
 	function tablerow_open(){
 		$this->table[] = array();
-		$this->_counter['rowstart'] = utf8_strlen($this->doc);
+		$this->_counter['rowstart'] = PhpString::strlen($this->doc);
 		$this->table[count($this->table)-1] = array();
 
 		$this->_counter['tmp_cellcount'] = 0;
@@ -493,7 +492,7 @@ class renderer_plugin_plainmail extends Doku_Renderer {
 
 	function tablecell_open($colspan = 1, $align = NULL, $rowspan = 1, $isHeader=false){
 
-		$this->_counter['cellstart'] = utf8_strlen($this->doc);
+		$this->_counter['cellstart'] = PhpString::strlen($this->doc);
 		$cell = array	(	'colspan' => $colspan,
 							'rowspan' => $rowspan,
 							'align' => $align,
@@ -508,25 +507,25 @@ class renderer_plugin_plainmail extends Doku_Renderer {
 		if ( $this->table[count($this->table)-1]['cellcount'] > $this->_counter['maxcellcount'] )
 			$this->_counter['maxcellcount'] = $this->table[count($this->table)-1]['cellcount'];
 
-		$text = utf8_trim(utf8_substr($this->doc, $this->_counter['cellstart']-1));
-		if ( utf8_strlen($text) +2 > $this->_counter['rowlencount'][count($this->table[count($this->table)-1]['cells'])-1] )
-			$this->_counter['rowlencount'][count($this->table[count($this->table)-1]['cells'])-1] = utf8_strlen($text) +2;
+		$text = PhpString::trim(PhpString::substr($this->doc, $this->_counter['cellstart']-1));
+		if ( PhpString::strlen($text) +2 > $this->_counter['rowlencount'][count($this->table[count($this->table)-1]['cells'])-1] )
+			$this->_counter['rowlencount'][count($this->table[count($this->table)-1]['cells'])-1] = PhpString::strlen($text) +2;
 
 		$this->table[count($this->table)-1]['cells'][count($this->table[count($this->table)-1]['cells'])-1]['text'] = $this->_xmlEntities($text);
-		$this->doc = utf8_substr($this->doc, 0, $this->_counter['cellstart']);
+		$this->doc = PhpString::substr($this->doc, 0, $this->_counter['cellstart']);
 		unset($this->_counter['cellstart']);
 	}
 
 	/**
 	 * Creates a linkid from a headline
 	 *
-	 * @param utf8_string  $title   The headline title
+	 * @param PhpString::string  $title   The headline title
 	 * @param boolean $create  Create a new unique ID?
 	 * @author Andreas Gohr <andi@splitbrain.org>
 	 */
 	function _headerToLink($title,$create=false) {
 		$title = str_replace(':','',cleanID($title));
-		$title = utf8_ltrim($title,'0123456789._-');
+		$title = PhpString::ltrim($title,'0123456789._-');
 		if(empty($title)) $title='section';
 
 		return $title;
@@ -546,14 +545,13 @@ class renderer_plugin_plainmail extends Doku_Renderer {
 			return $this->_xmlEntities($default);
 		} else if ( is_array($title) ) {
 			return $this->_xmlEntities($title['title']);
-		} else { // if ( is_utf8_string($title) ) {
+		} else {
 			return $this->_xmlEntities($title);
 		}
 	}
 
 	function _xmlEntities($utf8_string) {
 	 	return $utf8_string;
-	    // return $this->UTF8ToHTML($utf8_string);
 	}
 	
 	function _formatLink($link){
